@@ -6,26 +6,23 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class UiText:
     window_title: str = "Bảng điều khiển quét mạng"
-    hero_badge: str = "Desktop • Windows • PyQt5"
-    hero_title: str = "Toàn cảnh mạng nội bộ"
-    hero_subtitle: str = (
-        "Theo dõi adapter đang hoạt động, cập nhật public IP và quét nhanh các địa chỉ khả dụng "
-        "trong mạng LAN từ một màn hình duy nhất."
-    )
-    control_panel_title: str = "Bộ điều khiển quét"
-    control_panel_subtitle: str = "Chọn adapter, cập nhật dữ liệu và khởi chạy phiên quét mới."
-    adapter_label: str = "Adapter đang chọn"
+    hero_badge: str = "Windows • PyQt5"
+    hero_title: str = "Quét mạng LAN"
+    hero_subtitle: str = "Theo dõi adapter, public IP và danh sách thiết bị trong giao diện tập trung vào dữ liệu quét."
+    control_panel_title: str = "Điều khiển quét"
+    control_panel_subtitle: str = "Chọn adapter, làm mới dữ liệu rồi bắt đầu phiên quét."
+    adapter_label: str = "Adapter"
     refresh_adapters_button: str = "Làm mới adapter"
     refresh_public_ip_button: str = "Cập nhật public IP"
     scan_button: str = "Quét mạng LAN"
-    info_panel_title: str = "Thông tin mạng hiện tại"
-    info_panel_subtitle: str = "Chi tiết IPv4, gateway và trạng thái public IP của adapter đang dùng."
-    progress_panel_title: str = "Tiến trình quét"
-    progress_panel_subtitle: str = "Theo dõi thời gian thực trong lúc ứng dụng quét subnet."
+    info_panel_title: str = "Thông tin mạng"
+    info_panel_subtitle: str = "Chi tiết adapter đang chọn và public IP hiện tại."
+    progress_panel_title: str = "Tiến trình"
+    progress_panel_subtitle: str = "Trạng thái của phiên quét hiện tại."
     results_panel_title: str = "Kết quả quét"
-    results_panel_subtitle: str = "Danh sách thiết bị phát hiện được và các IP còn khả dụng."
-    summary_panel_title: str = "Nhật ký phiên quét"
-    summary_panel_subtitle: str = "Tóm tắt nhanh tình trạng mạng sau mỗi phiên quét."
+    results_panel_subtitle: str = "Khu vực ưu tiên để xem thiết bị phát hiện được và các IP còn khả dụng."
+    summary_panel_title: str = "Tóm tắt phiên quét"
+    summary_panel_subtitle: str = "Thông tin tổng hợp sau khi quét xong."
     devices_tab_title: str = "Thiết bị phát hiện"
     free_ips_tab_title: str = "IP còn trống"
     summary_tab_title: str = "Tóm tắt"
@@ -53,8 +50,8 @@ class UiText:
     scan_starting_status: str = "Đang khởi tạo phiên quét..."
     generic_error_status: str = "Có lỗi xảy ra."
     error_dialog_title: str = "Lỗi"
-    summary_empty_title: str = "Chưa có phiên quét nào"
-    summary_empty_body: str = "Chọn adapter rồi nhấn “Quét mạng LAN” để bắt đầu thu thập dữ liệu."
+    summary_empty_title: str = "Chưa có phiên quét"
+    summary_empty_body: str = "Nhấn “Quét mạng LAN” để xem danh sách thiết bị phát hiện và các IP còn trống."
     summary_label_adapter: str = "Adapter"
     summary_label_local_ipv4: str = "IPv4 nội bộ"
     summary_label_gateway: str = "Gateway"
@@ -75,179 +72,206 @@ class UiText:
     source_ping: str = "Ping"
     source_arp: str = "ARP"
     source_ping_arp: str = "Ping + ARP"
-    card_hint_public_ip: str = "Tự động lấy từ Internet"
-    card_hint_scan: str = "Tối ưu cho mạng IPv4 nội bộ"
+    card_hint_public_ip: str = "Đồng bộ từ Internet"
+    card_hint_scan: str = "Ưu tiên hiển thị vùng quét"
 
 
 @dataclass(frozen=True)
 class UiTheme:
-    window_width: int = 1380
-    window_height: int = 880
+    window_width: int = 1320
+    window_height: int = 960
+    app_margin: int = 16
+    app_spacing: int = 12
+    section_spacing: int = 10
+    header_maximum_height: int = 74
+    info_panel_minimum_width: int = 360
+    results_panel_minimum_height: int = 420
+    control_button_min_width: int = 130
+    control_row_height: int = 40
+    adapter_combo_minimum_contents_length: int = 18
+    summary_panel_minimum_height: int = 260
+    splitter_left_initial: int = 980
+    splitter_right_initial: int = 340
     body_font_family: str = "Segoe UI"
     heading_font_family: str = "Bahnschrift"
     body_font_size: int = 10
-    heading_font_size: int = 18
+    heading_font_size: int = 17
     stylesheet: str = """
 QWidget#AppRoot {
-    background-color: #f4f7fb;
+    background-color: #eef3f8;
 }
-QFrame#HeroCard {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #113c5d, stop:1 #1f6f78);
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+QFrame#HeaderCard {
+    background-color: #ffffff;
+    border: 1px solid #d8e1ea;
+    border-radius: 14px;
 }
 QFrame#PanelCard, QFrame#StatCard {
     background-color: #ffffff;
-    border: 1px solid #dbe4ee;
-    border-radius: 22px;
+    border: 1px solid #d7e0ea;
+    border-radius: 14px;
 }
 QLabel#HeroBadge {
-    color: #cfe9ff;
-    background-color: rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    padding: 6px 12px;
+    color: #1d5b79;
+    background-color: #e7f0f6;
+    border-radius: 10px;
+    padding: 4px 10px;
     font-weight: 600;
 }
 QLabel#HeroTitle {
-    color: #ffffff;
-    font-size: 28px;
+    color: #18324e;
+    font-size: 22px;
     font-weight: 700;
 }
 QLabel#HeroSubtitle {
-    color: #d7ebf5;
-    font-size: 13px;
+    color: #637689;
+    font-size: 12px;
 }
 QLabel#PanelTitle {
-    color: #16324f;
-    font-size: 18px;
+    color: #17324e;
+    font-size: 15px;
     font-weight: 700;
 }
 QLabel#PanelSubtitle {
-    color: #6b7b8f;
+    color: #66788d;
     font-size: 12px;
 }
 QLabel#FieldLabel {
-    color: #5f6f82;
+    color: #64768a;
     font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;
 }
 QLabel#FieldValue {
-    color: #10263d;
+    color: #12263a;
     font-size: 13px;
     font-weight: 600;
 }
 QLabel#StatLabel {
-    color: #688097;
+    color: #698095;
     font-size: 11px;
     font-weight: 600;
 }
 QLabel#StatValue {
-    color: #143e5f;
-    font-size: 20px;
+    color: #14324a;
+    font-size: 18px;
     font-weight: 700;
 }
 QLabel#StatHint {
-    color: #8293a6;
+    color: #8595a5;
     font-size: 11px;
 }
 QComboBox {
-    min-height: 42px;
-    border: 1px solid #cfd9e3;
-    border-radius: 14px;
+    min-height: 40px;
+    border: 1px solid #cfd9e4;
+    border-radius: 12px;
     background-color: #ffffff;
-    padding: 0 14px;
-    color: #16324f;
+    padding: 0 12px;
+    color: #16324d;
 }
 QComboBox::drop-down {
     width: 28px;
     border: none;
 }
 QPushButton {
-    min-height: 42px;
-    padding: 0 18px;
-    border-radius: 14px;
-    border: 1px solid #cfd9e3;
-    background-color: #f9fbfd;
-    color: #17324e;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid #cfd9e4;
+    background-color: #f7fafc;
+    color: #18324e;
     font-weight: 600;
 }
 QPushButton:hover {
-    background-color: #eef4fa;
+    background-color: #eef4f9;
 }
 QPushButton#PrimaryButton {
-    background-color: #153e5c;
-    border-color: #153e5c;
+    background-color: #1d5b79;
+    border-color: #1d5b79;
     color: #ffffff;
 }
 QPushButton#PrimaryButton:hover {
-    background-color: #0f314a;
+    background-color: #184c66;
 }
 QPushButton:disabled {
-    background-color: #eef2f6;
-    border-color: #d7e0e8;
-    color: #97a7b7;
+    background-color: #eef2f5;
+    border-color: #d6dfe8;
+    color: #95a4b3;
 }
 QProgressBar {
-    min-height: 16px;
-    border-radius: 8px;
+    min-height: 14px;
+    border-radius: 7px;
     border: none;
-    background-color: #e5edf4;
+    background-color: #e3ebf3;
     text-align: center;
-    color: #143e5f;
 }
 QProgressBar::chunk {
-    border-radius: 8px;
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2f8f9d, stop:1 #58c4b8);
+    border-radius: 7px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2b7a9b, stop:1 #42b6b0);
+}
+QSplitter::handle {
+    background-color: transparent;
+}
+QTabWidget::tab-bar {
+    left: 12px;
 }
 QTabWidget::pane {
-    border: 1px solid #dde5ee;
-    border-radius: 18px;
-    background-color: #ffffff;
-    top: -1px;
+    border: none;
+    background-color: transparent;
+    top: 0px;
+    margin-top: 10px;
 }
 QTabBar::tab {
     min-width: 150px;
-    padding: 12px 18px;
+    padding: 10px 16px;
     margin-right: 6px;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    background-color: #eaf0f6;
-    color: #516579;
+    margin-bottom: 0px;
+    border: 1px solid #dbe4ed;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    background-color: #eaf0f5;
+    color: #5c7086;
     font-weight: 600;
 }
 QTabBar::tab:selected {
     background-color: #ffffff;
-    color: #153e5c;
+    color: #17324e;
+    border-color: #dbe4ed;
+}
+QTabBar::tab:hover {
+    background-color: #f3f7fb;
+    color: #17324e;
 }
 QTableView {
     border: none;
     background-color: #ffffff;
-    alternate-background-color: #f6f9fc;
-    selection-background-color: #d9ebf8;
+    alternate-background-color: #f7fafc;
+    selection-background-color: #dcedf9;
     selection-color: #10263d;
     gridline-color: #eef3f7;
-    padding: 6px;
+    padding: 4px;
 }
 QHeaderView::section {
-    background-color: #f1f6fa;
-    color: #546b80;
+    background-color: #f3f7fb;
+    color: #5b7085;
     border: none;
-    border-bottom: 1px solid #dde5ee;
+    border-bottom: 1px solid #dbe4ed;
     padding: 12px 10px;
     font-weight: 700;
 }
 QTextEdit {
-    border: 1px solid #dde5ee;
-    border-radius: 18px;
+    border: 1px solid #dbe4ed;
+    border-radius: 14px;
     background-color: #fbfdff;
     color: #17324e;
     padding: 8px;
 }
 QStatusBar {
     background-color: #ffffff;
-    border-top: 1px solid #dde5ee;
-    color: #52667c;
+    border-top: 1px solid #dbe4ed;
+    color: #5a6f84;
+}
+QLabel#MutedText {
+    color: #6f8294;
+    font-size: 11px;
 }
 QMessageBox {
     background-color: #ffffff;

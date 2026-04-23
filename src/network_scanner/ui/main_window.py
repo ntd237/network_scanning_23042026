@@ -20,6 +20,9 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
     QStatusBar,
     QTabWidget,
     QTableView,
@@ -77,128 +80,139 @@ class MainWindow(QMainWindow):
         self._load_initial_state()
 
     def _build_ui(self) -> None:
+        theme = self.settings.ui_theme
+
         root = QWidget(self)
         root.setObjectName("AppRoot")
         root_layout = QVBoxLayout(root)
-        root_layout.setContentsMargins(24, 24, 24, 20)
-        root_layout.setSpacing(18)
+        root_layout.setContentsMargins(theme.app_margin, theme.app_margin, theme.app_margin, theme.app_margin)
+        root_layout.setSpacing(theme.app_spacing)
 
-        root_layout.addWidget(self._build_hero_card())
+        header = self._build_header_card()
+        header.setMaximumHeight(theme.header_maximum_height)
+        root_layout.addWidget(header)
 
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(18)
+        control_panel = self._build_control_panel()
+        root_layout.addWidget(control_panel)
 
-        left_column = QVBoxLayout()
-        left_column.setSpacing(18)
-        left_column.addWidget(self._build_control_panel())
-        left_column.addLayout(self._build_stat_cards())
-        left_column.addWidget(self._build_results_panel(), 1)
+        root_layout.addLayout(self._build_stat_cards())
 
-        right_column = QVBoxLayout()
-        right_column.setSpacing(18)
-        right_column.addWidget(self._build_info_panel())
-        right_column.addWidget(self._build_summary_panel(), 1)
-
-        content_layout.addLayout(left_column, 3)
-        content_layout.addLayout(right_column, 2)
-        root_layout.addLayout(content_layout, 1)
+        content_splitter = QSplitter(Qt.Horizontal)
+        content_splitter.setChildrenCollapsible(False)
+        content_splitter.addWidget(self._build_results_panel())
+        content_splitter.addWidget(self._build_sidebar_panel())
+        content_splitter.setStretchFactor(0, 5)
+        content_splitter.setStretchFactor(1, 2)
+        content_splitter.setSizes(
+            [
+                theme.splitter_left_initial,
+                theme.splitter_right_initial,
+            ]
+        )
+        root_layout.addWidget(content_splitter, 1)
 
         self.setCentralWidget(root)
         self.setStatusBar(QStatusBar(self))
 
-    def _build_hero_card(self) -> QFrame:
+    def _build_header_card(self) -> QFrame:
         card = QFrame()
-        card.setObjectName("HeroCard")
+        card.setObjectName("HeaderCard")
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(20)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
 
-        text_column = QVBoxLayout()
-        text_column.setSpacing(8)
+        text_row = QHBoxLayout()
+        text_row.setSpacing(12)
 
         badge = QLabel(self.texts.hero_badge)
         badge.setObjectName("HeroBadge")
         badge.setAlignment(Qt.AlignCenter)
-        badge.setMaximumWidth(220)
+        badge.setMaximumWidth(140)
 
         title = QLabel(self.texts.hero_title)
         title.setObjectName("HeroTitle")
-        title.setWordWrap(True)
 
         subtitle = QLabel(self.texts.hero_subtitle)
         subtitle.setObjectName("HeroSubtitle")
         subtitle.setWordWrap(True)
 
-        text_column.addWidget(badge)
-        text_column.addWidget(title)
-        text_column.addWidget(subtitle)
+        title_column = QVBoxLayout()
+        title_column.setSpacing(2)
+        title_column.addWidget(title)
+        title_column.addWidget(subtitle)
 
-        spotlight = self._create_stat_card(
-            self.texts.stat_public_ip_label,
-            self.texts.public_ip_unavailable,
-            self.texts.card_hint_public_ip,
-        )
-        spotlight.setMinimumWidth(260)
-        self.stat_values["public_ip"] = spotlight.findChild(QLabel, "StatValue")
-        self.stat_hints["public_ip"] = spotlight.findChild(QLabel, "StatHint")
-
-        layout.addLayout(text_column, 3)
-        layout.addWidget(spotlight, 1)
+        text_row.addWidget(badge, 0, Qt.AlignTop)
+        text_row.addLayout(title_column, 1)
+        layout.addLayout(text_row, 1)
         return card
 
     def _build_control_panel(self) -> QFrame:
         card, body = self._create_panel(self.texts.control_panel_title, self.texts.control_panel_subtitle)
+        theme = self.settings.ui_theme
 
+        top_row = QHBoxLayout()
+        top_row.setSpacing(theme.section_spacing)
         adapter_label = QLabel(self.texts.adapter_label)
         adapter_label.setObjectName("FieldLabel")
-
+        adapter_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+        adapter_label.setFixedHeight(theme.control_row_height)
         self.adapter_combo = QComboBox()
         self.adapter_combo.currentIndexChanged.connect(self._on_adapter_changed)
-
-        button_row = QHBoxLayout()
-        button_row.setSpacing(10)
-
-        self.refresh_adapters_button = QPushButton(self.texts.refresh_adapters_button)
-        self.refresh_adapters_button.clicked.connect(self.refresh_adapters)
-
-        self.refresh_public_ip_button = QPushButton(self.texts.refresh_public_ip_button)
-        self.refresh_public_ip_button.clicked.connect(self.refresh_public_ip)
+        self.adapter_combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.adapter_combo.setMinimumContentsLength(theme.adapter_combo_minimum_contents_length)
+        self.adapter_combo.setFixedHeight(theme.control_row_height)
+        self.adapter_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.scan_button = QPushButton(self.texts.scan_button)
         self.scan_button.setObjectName("PrimaryButton")
         self.scan_button.clicked.connect(self.start_scan)
+        self.scan_button.setMinimumWidth(theme.control_button_min_width)
+        self.scan_button.setFixedHeight(theme.control_row_height)
+        self.scan_button.setCursor(Qt.PointingHandCursor)
 
-        button_row.addWidget(self.refresh_adapters_button)
-        button_row.addWidget(self.refresh_public_ip_button)
-        button_row.addStretch(1)
-        button_row.addWidget(self.scan_button)
+        self.refresh_adapters_button = QPushButton(self.texts.refresh_adapters_button)
+        self.refresh_adapters_button.clicked.connect(self.refresh_adapters)
+        self.refresh_adapters_button.setMinimumWidth(theme.control_button_min_width)
+        self.refresh_adapters_button.setFixedHeight(theme.control_row_height)
+        self.refresh_adapters_button.setCursor(Qt.PointingHandCursor)
+
+        self.refresh_public_ip_button = QPushButton(self.texts.refresh_public_ip_button)
+        self.refresh_public_ip_button.clicked.connect(self.refresh_public_ip)
+        self.refresh_public_ip_button.setMinimumWidth(theme.control_button_min_width)
+        self.refresh_public_ip_button.setFixedHeight(theme.control_row_height)
+        self.refresh_public_ip_button.setCursor(Qt.PointingHandCursor)
+
+        progress_row = QHBoxLayout()
+        progress_row.setSpacing(10)
 
         progress_header = QLabel(self.texts.progress_panel_title)
-        progress_header.setObjectName("PanelTitle")
-        progress_subtitle = QLabel(self.texts.progress_panel_subtitle)
-        progress_subtitle.setObjectName("PanelSubtitle")
-
+        progress_header.setObjectName("FieldLabel")
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
+        self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.progress_label = QLabel(self.texts.ready_status)
-        self.progress_label.setObjectName("FieldValue")
+        self.progress_label.setObjectName("MutedText")
         self.progress_label.setWordWrap(True)
 
-        body.addWidget(adapter_label)
-        body.addWidget(self.adapter_combo)
-        body.addLayout(button_row)
-        body.addSpacing(8)
-        body.addWidget(progress_header)
-        body.addWidget(progress_subtitle)
-        body.addWidget(self.progress_bar)
-        body.addWidget(self.progress_label)
+        top_row.addWidget(adapter_label)
+        top_row.addWidget(self.adapter_combo, 1)
+        top_row.addWidget(self.refresh_adapters_button)
+        top_row.addWidget(self.refresh_public_ip_button)
+        top_row.addWidget(self.scan_button)
+
+        progress_row.addWidget(progress_header)
+        progress_row.addWidget(self.progress_bar, 1)
+        progress_row.addWidget(self.progress_label, 2)
+
+        body.addLayout(top_row)
+        body.addLayout(progress_row)
         return card
 
     def _build_stat_cards(self) -> QHBoxLayout:
         layout = QHBoxLayout()
-        layout.setSpacing(14)
+        layout.setSpacing(self.settings.ui_theme.section_spacing)
 
         adapter_card = self._create_stat_card(
             self.texts.stat_adapter_label,
@@ -208,23 +222,46 @@ class MainWindow(QMainWindow):
         self.stat_values["adapter"] = adapter_card.findChild(QLabel, "StatValue")
         self.stat_hints["adapter"] = adapter_card.findChild(QLabel, "StatHint")
 
-        device_card = self._create_stat_card(self.texts.stat_device_count_label, "0", self.texts.ready_status)
+        public_ip_card = self._create_stat_card(
+            self.texts.stat_public_ip_label,
+            self.texts.public_ip_unavailable,
+            self.texts.card_hint_public_ip,
+        )
+        self.stat_values["public_ip"] = public_ip_card.findChild(QLabel, "StatValue")
+        self.stat_hints["public_ip"] = public_ip_card.findChild(QLabel, "StatHint")
+
+        device_card = self._create_stat_card(
+            self.texts.stat_device_count_label,
+            "0",
+            self.texts.ready_status,
+        )
         self.stat_values["devices"] = device_card.findChild(QLabel, "StatValue")
         self.stat_hints["devices"] = device_card.findChild(QLabel, "StatHint")
 
-        free_ip_card = self._create_stat_card(self.texts.stat_free_ip_count_label, "0", self.texts.card_hint_scan)
+        free_ip_card = self._create_stat_card(
+            self.texts.stat_free_ip_count_label,
+            "0",
+            self.texts.card_hint_scan,
+        )
         self.stat_values["free_ips"] = free_ip_card.findChild(QLabel, "StatValue")
         self.stat_hints["free_ips"] = free_ip_card.findChild(QLabel, "StatHint")
 
         layout.addWidget(adapter_card)
+        layout.addWidget(public_ip_card)
         layout.addWidget(device_card)
         layout.addWidget(free_ip_card)
         return layout
 
     def _build_results_panel(self) -> QFrame:
         card, body = self._create_panel(self.texts.results_panel_title, self.texts.results_panel_subtitle)
+        card.setMinimumHeight(self.settings.ui_theme.results_panel_minimum_height)
+        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         tabs = QTabWidget()
+        tabs.setDocumentMode(False)
+        tabs.tabBar().setCursor(Qt.PointingHandCursor)
+        tabs.tabBar().setDrawBase(False)
+
         self.device_table = QTableView()
         self.device_table.setModel(self.device_model)
         self._configure_table(self.device_table)
@@ -240,14 +277,35 @@ class MainWindow(QMainWindow):
         self.summary_text.setHtml(self._empty_summary_html())
         tabs.addTab(self.summary_text, self.texts.summary_tab_title)
 
-        body.addWidget(tabs)
+        body.addWidget(tabs, 1)
         return card
+
+    def _build_sidebar_panel(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(self.settings.ui_theme.section_spacing)
+        layout.addWidget(self._build_info_panel())
+        layout.addWidget(self._build_summary_panel())
+        return container
 
     def _build_info_panel(self) -> QFrame:
         card, body = self._create_panel(self.texts.info_panel_title, self.texts.info_panel_subtitle)
+        card.setMinimumWidth(self.settings.ui_theme.info_panel_minimum_width)
+        card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(8)
+
         grid = QGridLayout()
-        grid.setHorizontalSpacing(24)
-        grid.setVerticalSpacing(14)
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(8)
         info_fields = (
             ("adapter", self.texts.info_field_adapter),
             ("ipv4", self.texts.info_field_ipv4),
@@ -268,23 +326,32 @@ class MainWindow(QMainWindow):
             grid.addWidget(label, row, 0)
             grid.addWidget(value, row, 1)
             self.info_labels[key] = value
-        body.addLayout(grid)
+
+        content_layout.addLayout(grid)
+        content_layout.addStretch(1)
+
+        scroll.setWidget(content)
+        body.addWidget(scroll, 1)
         return card
 
     def _build_summary_panel(self) -> QFrame:
         card, body = self._create_panel(self.texts.summary_panel_title, self.texts.summary_panel_subtitle)
-        self.session_summary = QTextEdit()
-        self.session_summary.setReadOnly(True)
-        self.session_summary.setHtml(self._empty_summary_html())
-        body.addWidget(self.session_summary)
+        card.setMinimumWidth(self.settings.ui_theme.info_panel_minimum_width)
+        card.setMinimumHeight(self.settings.ui_theme.summary_panel_minimum_height)
+        card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        self.side_summary = QTextEdit()
+        self.side_summary.setReadOnly(True)
+        self.side_summary.setHtml(self._empty_summary_html())
+        body.addWidget(self.side_summary, 1)
         return card
 
     def _create_panel(self, title_text: str, subtitle_text: str) -> tuple[QFrame, QVBoxLayout]:
         card = QFrame()
         card.setObjectName("PanelCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(22, 20, 22, 22)
-        layout.setSpacing(14)
+        layout.setContentsMargins(16, 14, 16, 16)
+        layout.setSpacing(8)
 
         title = QLabel(title_text)
         title.setObjectName("PanelTitle")
@@ -301,8 +368,8 @@ class MainWindow(QMainWindow):
         card = QFrame()
         card.setObjectName("StatCard")
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(18, 16, 18, 16)
-        layout.setSpacing(6)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(4)
 
         title = QLabel(title_text)
         title.setObjectName("StatLabel")
@@ -392,8 +459,9 @@ class MainWindow(QMainWindow):
         self._set_scan_controls_enabled(False)
         self.progress_bar.setValue(0)
         self.progress_label.setText(self.texts.scan_starting_status)
-        self.summary_text.setHtml(self._empty_summary_html())
-        self.session_summary.setHtml(self._empty_summary_html())
+        empty_summary = self._empty_summary_html()
+        self.summary_text.setHtml(empty_summary)
+        self.side_summary.setHtml(empty_summary)
         self._update_stat("devices", "0", self.texts.scan_starting_status)
         self._update_stat("free_ips", "0", self.texts.card_hint_scan)
 
@@ -430,7 +498,7 @@ class MainWindow(QMainWindow):
         self.progress_label.setText(summary.status_message)
         summary_html = self._format_summary_html(summary)
         self.summary_text.setHtml(summary_html)
-        self.session_summary.setHtml(summary_html)
+        self.side_summary.setHtml(summary_html)
         self.statusBar().showMessage(summary.status_message)
         self._update_stat("devices", str(len(summary.devices)), summary.status_message)
         self._update_stat("free_ips", str(len(summary.free_ips)), summary.warning_message or self.texts.card_hint_scan)
