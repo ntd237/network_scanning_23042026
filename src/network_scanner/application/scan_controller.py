@@ -70,8 +70,9 @@ class ScanController:
         used_ips = set(ping_hits)
         used_ips.update(entry.ip_address for entry in relevant_arp_entries)
 
-        hostname_map = self.dns_resolver.resolve_many(sorted(used_ips))
-        devices = self._build_devices(sorted(used_ips), ping_hits, relevant_arp_entries, hostname_map)
+        ips_for_name_lookup = sorted(used_ips | {adapter.ipv4_address})
+        hostname_map = self.dns_resolver.resolve_many(ips_for_name_lookup, local_adapter=adapter)
+        devices = self._build_devices(adapter, sorted(used_ips), ping_hits, relevant_arp_entries, hostname_map)
         free_ips = compute_free_ips(candidate_hosts, used_ips, excluded_ips)
 
         warning_message = ""
@@ -100,19 +101,35 @@ class ScanController:
                 entry_ip = ipaddress.IPv4Address(entry.ip_address)
             except ipaddress.AddressValueError:
                 continue
-            if entry_ip in network and entry.ip_address != adapter.ipv4_address:
+            if entry_ip not in network.hosts():
+                continue
+            if entry.ip_address == adapter.ipv4_address:
+                continue
+            if entry.mac_address == "ff-ff-ff-ff-ff-ff":
+                continue
+            if entry.entry_type == "invalid":
+                continue
+            if entry.ip_address != adapter.ipv4_address:
                 filtered.append(entry)
         return filtered
 
     def _build_devices(
         self,
+        adapter: AdapterInfo,
         used_ips: list[str],
         ping_hits: set[str],
         arp_entries: list,
         hostname_map: dict[str, str],
     ) -> list[DeviceInfo]:
         arp_map = {entry.ip_address: entry for entry in arp_entries}
-        devices: list[DeviceInfo] = []
+        devices: list[DeviceInfo] = [
+            DeviceInfo(
+                ip_address=adapter.ipv4_address,
+                mac_address=adapter.mac_address or "",
+                hostname=hostname_map.get(adapter.ipv4_address, ""),
+                source="local",
+            )
+        ]
         for ip_address in used_ips:
             arp_entry = arp_map.get(ip_address)
             if ip_address in ping_hits and arp_entry:

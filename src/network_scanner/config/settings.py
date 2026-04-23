@@ -1,6 +1,18 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
+
+
+def _get_bool_env(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_str_env(name: str) -> str:
+    return os.environ.get(name, "").strip()
 
 
 @dataclass(frozen=True)
@@ -72,6 +84,7 @@ class UiText:
     source_ping: str = "Ping"
     source_arp: str = "ARP"
     source_ping_arp: str = "Ping + ARP"
+    source_local: str = "Thiết bị hiện tại"
     card_hint_public_ip: str = "Đồng bộ từ Internet"
     card_hint_scan: str = "Ưu tiên hiển thị vùng quét"
 
@@ -289,6 +302,8 @@ class AppSettings:
     scan_max_workers: int = 64
     auto_select_strategy: str = "lowest_metric_with_gateway"
     dns_lookup_timeout_seconds: float = 1.5
+    name_resolution_max_workers: int = 8
+    name_resolution_command_timeout_seconds: float = 2.0
     max_hosts_warning_threshold: int = 512
     powershell_executable: str = "powershell"
     powershell_common_flags: tuple[str, ...] = (
@@ -319,6 +334,20 @@ $items | ConvertTo-Json -Depth 4
     arp_command: tuple[str, ...] = ("arp", "-a")
     ping_command_template: tuple[str, ...] = ("ping", "-n", "{count}", "-w", "{timeout_ms}", "{ip}")
     reverse_dns_enabled: bool = True
+    ping_name_resolution_enabled: bool = True
+    ping_name_command_template: tuple[str, ...] = ("ping", "-a", "-n", "1", "-w", "{timeout_ms}", "{ip}")
+    netbios_name_resolution_enabled: bool = True
+    netbios_command_template: tuple[str, ...] = ("nbtstat", "-A", "{ip}")
+    http_title_probe_enabled: bool = True
+    http_title_probe_timeout_seconds: float = 1.5
+    http_title_probe_urls: tuple[str, ...] = ("http://{ip}/",)
+    router_name_resolution_enabled: bool = field(
+        default_factory=lambda: _get_bool_env("NETWORK_SCANNER_ROUTER_NAME_RESOLUTION_ENABLED", True)
+    )
+    router_name_resolution_timeout_seconds: float = 3.0
+    router_username: str = field(default_factory=lambda: _get_str_env("NETWORK_SCANNER_ROUTER_USERNAME"))
+    router_password: str = field(default_factory=lambda: _get_str_env("NETWORK_SCANNER_ROUTER_PASSWORD"))
+    router_query_paths: tuple[str, ...] = ("/",)
     ui_text: UiText = field(default_factory=UiText)
     ui_theme: UiTheme = field(default_factory=UiTheme)
 

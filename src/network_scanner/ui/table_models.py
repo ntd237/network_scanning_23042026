@@ -61,6 +61,7 @@ class DeviceTableModel(QAbstractTableModel):
             "ping": self._texts.source_ping,
             "arp": self._texts.source_arp,
             "ping+arp": self._texts.source_ping_arp,
+            "local": self._texts.source_local,
         }
         return mapping.get(source.lower(), source or self._texts.table_placeholder_value)
 

@@ -33,5 +33,9 @@ class ArpReader(Protocol):
 
 
 class DnsResolver(Protocol):
-    def resolve_many(self, ip_addresses: list[str]) -> dict[str, str]:
+    def resolve_many(
+        self,
+        ip_addresses: list[str],
+        local_adapter: AdapterInfo | None = None,
+    ) -> dict[str, str]:
         ...
