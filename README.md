@@ -192,25 +192,35 @@ File `.exe` sẽ được lưu tại: `dist/network_scanner.exe`.
 network_scanning_23042026/
 ├─ docs/
 │  └─ plan_network_scanning_20260423.md
+├─ release/
+│  └─ network_scanner-win/
+│     └─ network_scanner.exe
 ├─ src/
 │  └─ network_scanner/
 │     ├─ application/
+│     │  ├─ __init__.py
 │     │  ├─ scan_controller.py
 │     │  └─ services.py
 │     ├─ config/
 │     │  ├─ __init__.py
 │     │  └─ settings.py
 │     ├─ domain/
+│     │  ├─ __init__.py
 │     │  ├─ ip_logic.py
 │     │  └─ models.py
 │     ├─ infrastructure/
+│     │  ├─ __init__.py
 │     │  ├─ arp_parser.py
 │     │  ├─ dns_resolver.py
 │     │  ├─ logging_utils.py
 │     │  ├─ ping_runner.py
 │     │  ├─ public_ip_client.py
 │     │  └─ windows_network.py
+│     ├─ resources/
+│     │  ├─ app_icon.ico
+│     │  └─ app_icon.png
 │     └─ ui/
+│        ├─ __init__.py
 │        ├─ main_window.py
 │        ├─ table_models.py
 │        └─ worker_signals.py
@@ -219,21 +229,25 @@ network_scanning_23042026/
 │  ├─ test_arp_parser.py
 │  ├─ test_ip_logic.py
 │  └─ test_windows_network_parsing.py
+├─ LICENSE
 ├─ main.py
+├─ network_scanner.spec
 ├─ pytest.ini
 ├─ README.md
-└─ requirements.txt
+├─ requirements.txt
+└─ requirements_build.txt
 ```
 
 ### Mô tả nhanh các phần chính
 
-- `main.py`: entry point ở root, thêm `src/` vào `sys.path` rồi chạy app.
-- `src/network_scanner/ui/main_window.py`: giao diện chính của ứng dụng.
-- `src/network_scanner/application/scan_controller.py`: điều phối luồng quét.
-- `src/network_scanner/infrastructure/windows_network.py`: đọc adapter từ Windows PowerShell.
-- `src/network_scanner/infrastructure/public_ip_client.py`: lấy public IP từ `ipify`.
-- `src/network_scanner/domain/ip_logic.py`: tính subnet, host hợp lệ và IP còn trống.
-- `tests/`: kiểm thử logic subnet, parse adapter và parse ARP.
+- `main.py`: Entry point chính, thêm `src/` vào `sys.path` rồi khởi chạy ứng dụng.
+- `network_scanner.spec`: File cấu hình PyInstaller để đóng gói ứng dụng thành `.exe`.
+- `src/network_scanner/resources/`: Chứa các tài nguyên của ứng dụng như icon (`.ico`, `.png`).
+- `src/network_scanner/ui/main_window.py`: Giao diện chính (PyQt5) của ứng dụng.
+- `src/network_scanner/application/scan_controller.py`: Điều phối luồng xử lý quét mạng.
+- `src/network_scanner/infrastructure/windows_network.py`: Truy vấn adapter mạng từ Windows qua PowerShell.
+- `src/network_scanner/domain/ip_logic.py`: Logic xử lý địa chỉ IP, subnet và dải host.
+- `requirements_build.txt`: Danh sách dependency tối giản phục vụ quá trình build.
 
 ## Kiểm thử
 
