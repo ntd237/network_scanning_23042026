@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyQt5](https://img.shields.io/badge/UI-PyQt5-41CD52?logo=qt&logoColor=white)](https://pypi.org/project/PyQt5/)
 [![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
-[![License](https://img.shields.io/badge/License-Not%20Specified-lightgrey)](#license)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Ứng dụng desktop `PyQt5` hỗ trợ lấy `public IP`, xác định adapter IPv4 đang hoạt động, quét mạng LAN bằng `Ping + ARP`, hiển thị danh sách thiết bị trong cùng subnet và liệt kê các IP còn trống.
 
@@ -160,6 +160,32 @@ python main.py
 python -m pytest
 ```
 
+## Build ứng dụng
+
+Dự án hỗ trợ build thành file thực thi `.exe` độc lập trên Windows thông qua PyInstaller.
+
+### Môi trường build
+- Python 3.10+
+- PyInstaller >= 6.0
+- PyQt5
+
+### Lệnh build (Windows)
+Sử dụng môi trường ảo riêng biệt để tối ưu dung lượng:
+
+```powershell
+# 1. Tạo và kích hoạt môi trường build
+python -m venv .venv_build
+.venv_build\Scripts\Activate.ps1
+
+# 2. Cài đặt các thư viện cần thiết cho runtime (không gồm dev tools)
+pip install PyQt5 "pyinstaller>=6.0"
+
+# 3. Chạy lệnh build thông qua file cấu hình .spec
+pyinstaller network_scanner.spec --clean --noconfirm
+```
+
+File `.exe` sẽ được lưu tại: `dist/network_scanner.exe`.
+
 ## Cấu trúc dự án
 
 ```text
@@ -232,7 +258,7 @@ python -m compileall main.py src tests
 
 ## License
 
-Dự án hiện chưa có file `LICENSE`. Nếu bạn muốn public repository theo giấy phép cụ thể, hãy bổ sung file license phù hợp trước khi phát hành rộng rãi.
+Dự án này được cấp phép theo Giấy phép MIT - xem tệp [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ## Liên hệ
 

@@ -49,5 +49,6 @@ class WindowsPingRunner:
             text=True,
             timeout=self.settings.network_command_timeout_seconds,
             check=False,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         return result.returncode == 0

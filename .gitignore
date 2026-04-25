@@ -11,11 +11,14 @@ __pycache__/
 venv/
 env/
 ENV/
+.venv_build/
 
 # Build artifacts
 build/
 dist/
 *.egg-info/
+release/
+
 
 # Logs and temp files
 *.log

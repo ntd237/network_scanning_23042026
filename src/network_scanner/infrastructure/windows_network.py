@@ -57,6 +57,7 @@ class WindowsAdapterProvider:
             text=True,
             timeout=self.settings.network_command_timeout_seconds,
             check=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         adapters = parse_adapter_payload(completed.stdout)
         return sorted(adapters, key=self._sort_key)

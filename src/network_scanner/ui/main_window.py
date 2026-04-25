@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from PyQt5.QtCore import Qt, QThreadPool
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -32,7 +32,7 @@ from PyQt5.QtWidgets import (
 )
 
 from network_scanner.application.scan_controller import ScanController
-from network_scanner.config import AppSettings, UiText, get_settings
+from network_scanner.config import AppSettings, UiText, get_resource_path, get_settings
 from network_scanner.domain.models import AdapterInfo, PublicIpInfo, ScanProgress, ScanSummary
 from network_scanner.infrastructure import (
     SocketDnsResolver,
@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
         self.stat_hints: dict[str, QLabel] = {}
 
         self.setWindowTitle(self.texts.window_title)
+        self.setWindowIcon(QIcon(get_resource_path("resources/app_icon.png")))
         self.resize(self.settings.ui_theme.window_width, self.settings.ui_theme.window_height)
         self.setStyleSheet(self.settings.ui_theme.stylesheet)
         self._build_ui()

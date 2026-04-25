@@ -220,6 +220,7 @@ class SocketDnsResolver:
                 text=True,
                 timeout=self.settings.windows_known_device_name_command_timeout_seconds,
                 check=False,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
         except (OSError, subprocess.SubprocessError):
             return ""
@@ -298,6 +299,7 @@ class SocketDnsResolver:
                 text=True,
                 timeout=self.settings.name_resolution_command_timeout_seconds,
                 check=False,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
         except (OSError, subprocess.SubprocessError):
             return ""
@@ -314,6 +316,7 @@ class SocketDnsResolver:
                 text=True,
                 timeout=self.settings.name_resolution_command_timeout_seconds,
                 check=False,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
         except (OSError, subprocess.SubprocessError):
             return ""

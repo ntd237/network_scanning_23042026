@@ -47,5 +47,6 @@ class WindowsArpReader:
             text=True,
             timeout=self.settings.network_command_timeout_seconds,
             check=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         return parse_arp_output(completed.stdout)

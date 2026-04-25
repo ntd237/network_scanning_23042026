@@ -1,7 +1,21 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
+
+
+def get_resource_path(relative_path: str) -> str:
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = Path(sys._MEIPASS)
+    except Exception:
+        # If not running in a bundle, use the src/network_scanner directory
+        base_path = Path(__file__).resolve().parents[1]
+
+    return str(base_path / relative_path)
 
 
 def _get_bool_env(name: str, default: bool) -> bool:
