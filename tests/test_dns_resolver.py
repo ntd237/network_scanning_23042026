@@ -2,8 +2,10 @@ from network_scanner.infrastructure.dns_resolver import (
     _extract_router_client_name,
     _extract_router_ip_address,
     _flatten_router_rows,
+    choose_windows_known_device_label,
     encode_router_password,
     extract_html_title,
+    parse_dns_ptr_response,
     parse_nbtstat_output,
     parse_ping_name_output,
 )
@@ -29,6 +31,36 @@ NetBIOS Remote Machine Name Table
 """.strip()
 
     assert parse_nbtstat_output(output) == "NTD237"
+
+
+def test_parse_dns_ptr_response_returns_android_mdns_name() -> None:
+    response = bytes.fromhex(
+        "00008400000100010000000001310131033136380331393207696e2d61646472046172706100000c0001"
+        "c00c000c00010000007800140c6f70706f2d66696e642d7836056c6f63616c00"
+    )
+
+    assert parse_dns_ptr_response(response, "1.1.168.192.in-addr.arpa") == "oppo-find-x6.local"
+
+
+def test_choose_windows_known_device_label_matches_active_companion_process() -> None:
+    labels = ["OPPO Find X6"]
+    processes = [
+        {
+            "ProcessName": "O+Connect",
+            "CompanyName": "OPPO",
+            "ProductName": "O+Connect",
+            "Path": "C:\\Program Files\\O+Connect\\O+Connect.exe",
+        }
+    ]
+
+    assert choose_windows_known_device_label(labels, processes) == "OPPO Find X6"
+
+
+def test_choose_windows_known_device_label_ignores_ambiguous_company_matches() -> None:
+    labels = ["OPPO Find X6", "OPPO Find X7"]
+    processes = [{"ProcessName": "O+Connect", "CompanyName": "OPPO"}]
+
+    assert choose_windows_known_device_label(labels, processes) == ""
 
 
 def test_extract_html_title_returns_clean_title() -> None:

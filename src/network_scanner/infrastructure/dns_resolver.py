@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
 import socket
 import ssl
+import struct
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import unescape
@@ -73,9 +75,11 @@ class SocketDnsResolver:
 
         for candidate in (
             self._reverse_dns_lookup(ip_address),
+            self._multicast_name_lookup(ip_address, local_adapter),
             self._ping_name_lookup(ip_address),
             self._netbios_lookup(ip_address),
             self._http_title_lookup(ip_address, local_adapter),
+            self._windows_known_device_lookup(ip_address),
         ):
             normalized = self._normalize_name(candidate)
             if normalized:
@@ -196,6 +200,90 @@ class SocketDnsResolver:
         except (socket.gaierror, socket.herror, OSError):
             return ""
 
+    def _windows_known_device_lookup(self, ip_address: str) -> str:
+        if not self.settings.windows_known_device_name_resolution_enabled:
+            return ""
+        try:
+            safe_ip_address = str(ipaddress.IPv4Address(ip_address))
+        except ipaddress.AddressValueError:
+            return ""
+
+        command = [
+            self.settings.powershell_executable,
+            *self.settings.powershell_common_flags,
+            f"& {{ {self.settings.windows_known_device_name_script} }} -IpAddress {safe_ip_address}",
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=self.settings.windows_known_device_name_command_timeout_seconds,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return ""
+        if completed.returncode != 0 or not completed.stdout.strip():
+            return ""
+
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            return ""
+        if not isinstance(payload, dict):
+            return ""
+        return choose_windows_known_device_label(
+            _ensure_string_list(payload.get("KnownDeviceLabels")),
+            _ensure_dict_list(payload.get("Processes")),
+        )
+
+    def _multicast_name_lookup(self, ip_address: str, local_adapter: AdapterInfo | None = None) -> str:
+        if not self.settings.multicast_name_resolution_enabled:
+            return ""
+
+        reverse_name = build_reverse_dns_name(ip_address)
+        if not reverse_name:
+            return ""
+
+        endpoints = (
+            (self.settings.mdns_multicast_address, self.settings.mdns_port),
+            (self.settings.llmnr_multicast_address, self.settings.llmnr_port),
+        )
+        for multicast_address, port in endpoints:
+            hostname = self._multicast_ptr_lookup(reverse_name, multicast_address, port, local_adapter)
+            if hostname:
+                return hostname
+        return ""
+
+    def _multicast_ptr_lookup(
+        self,
+        reverse_name: str,
+        multicast_address: str,
+        port: int,
+        local_adapter: AdapterInfo | None = None,
+    ) -> str:
+        query = build_dns_ptr_query(reverse_name)
+        for _ in range(max(1, self.settings.multicast_name_resolution_attempts)):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
+                    sock.settimeout(self.settings.multicast_name_resolution_timeout_seconds)
+                    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+                    if local_adapter and local_adapter.ipv4_address:
+                        sock.setsockopt(
+                            socket.IPPROTO_IP,
+                            socket.IP_MULTICAST_IF,
+                            socket.inet_aton(local_adapter.ipv4_address),
+                        )
+                    sock.sendto(query, (multicast_address, port))
+                    while True:
+                        payload, _ = sock.recvfrom(4096)
+                        hostname = parse_dns_ptr_response(payload, reverse_name)
+                        if hostname:
+                            return hostname
+            except (OSError, TimeoutError, ValueError):
+                continue
+        return ""
+
     def _ping_name_lookup(self, ip_address: str) -> str:
         if not self.settings.ping_name_resolution_enabled:
             return ""
@@ -288,6 +376,168 @@ def parse_nbtstat_output(output: str) -> str:
         if match:
             return match.group("name").strip()
     return ""
+
+
+def choose_windows_known_device_label(labels: list[str], processes: list[dict[str, object]]) -> str:
+    unique_labels = sorted({label.strip() for label in labels if label and label.strip()})
+    if not unique_labels or not processes:
+        return ""
+
+    best_label = ""
+    best_score = 0
+    tied = False
+    for label in unique_labels:
+        label_tokens = _name_tokens(label)
+        if not label_tokens:
+            continue
+        score = 0
+        for process in processes:
+            company_tokens = _name_tokens(str(process.get("CompanyName", "")))
+            process_tokens = _name_tokens(str(process.get("ProcessName", "")))
+            product_tokens = _name_tokens(str(process.get("ProductName", "")))
+            path_tokens = _name_tokens(str(process.get("Path", "")))
+            score += 10 * len(label_tokens & company_tokens)
+            score += 4 * len(label_tokens & process_tokens)
+            score += 4 * len(label_tokens & product_tokens)
+            score += len(label_tokens & path_tokens)
+        if score > best_score:
+            best_label = label
+            best_score = score
+            tied = False
+        elif score == best_score and score > 0:
+            tied = True
+
+    return best_label if best_score >= 10 and not tied else ""
+
+
+def _ensure_string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, str)]
+    return []
+
+
+def _ensure_dict_list(value: object) -> list[dict[str, object]]:
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _name_tokens(value: str) -> set[str]:
+    ignored_tokens = {"app", "connect", "daemon", "exe", "files", "program", "service", "windows"}
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if len(token) >= 2 and token not in ignored_tokens
+    }
+
+
+def build_reverse_dns_name(ip_address: str) -> str:
+    try:
+        address = socket.inet_aton(ip_address)
+    except OSError:
+        return ""
+    return ".".join(str(part) for part in reversed(address)) + ".in-addr.arpa"
+
+
+def build_dns_ptr_query(name: str) -> bytes:
+    encoded_name = encode_dns_name(name)
+    return struct.pack("!HHHHHH", 0, 0, 1, 0, 0, 0) + encoded_name + struct.pack("!HH", 12, 1)
+
+
+def encode_dns_name(name: str) -> bytes:
+    encoded = bytearray()
+    for label in name.strip(".").split("."):
+        raw_label = label.encode("ascii", "ignore")
+        if not raw_label or len(raw_label) > 63:
+            return b""
+        encoded.append(len(raw_label))
+        encoded.extend(raw_label)
+    encoded.append(0)
+    return bytes(encoded)
+
+
+def parse_dns_ptr_response(payload: bytes, expected_name: str) -> str:
+    if len(payload) < 12:
+        return ""
+    try:
+        _, _, question_count, answer_count, authority_count, additional_count = struct.unpack("!HHHHHH", payload[:12])
+    except struct.error:
+        return ""
+
+    offset = 12
+    expected = expected_name.strip(".").lower()
+    for _ in range(question_count):
+        question_name, offset = read_dns_name(payload, offset)
+        if not question_name or offset + 4 > len(payload):
+            return ""
+        offset += 4
+        if question_name.strip(".").lower() != expected:
+            return ""
+
+    record_count = answer_count + authority_count + additional_count
+    for _ in range(record_count):
+        record_name, offset = read_dns_name(payload, offset)
+        if offset + 10 > len(payload):
+            return ""
+        record_type, _, _, data_length = struct.unpack("!HHIH", payload[offset : offset + 10])
+        offset += 10
+        data_offset = offset
+        offset += data_length
+        if offset > len(payload):
+            return ""
+        if record_name.strip(".").lower() != expected:
+            continue
+        if record_type != 12:
+            continue
+        ptr_name, _ = read_dns_name(payload, data_offset)
+        if ptr_name:
+            return ptr_name
+    return ""
+
+
+def read_dns_name(payload: bytes, offset: int) -> tuple[str, int]:
+    labels: list[str] = []
+    cursor = offset
+    next_offset = offset
+    jumped = False
+    visited_offsets: set[int] = set()
+
+    while cursor < len(payload):
+        if cursor in visited_offsets:
+            return "", offset
+        visited_offsets.add(cursor)
+
+        length = payload[cursor]
+        if length == 0:
+            cursor += 1
+            if not jumped:
+                next_offset = cursor
+            return ".".join(labels), next_offset
+
+        if length & 0xC0 == 0xC0:
+            if cursor + 1 >= len(payload):
+                return "", offset
+            pointer = ((length & 0x3F) << 8) | payload[cursor + 1]
+            if not jumped:
+                next_offset = cursor + 2
+            cursor = pointer
+            jumped = True
+            continue
+
+        if length & 0xC0:
+            return "", offset
+        cursor += 1
+        end = cursor + length
+        if end > len(payload):
+            return "", offset
+        labels.append(payload[cursor:end].decode("utf-8", "ignore"))
+        cursor = end
+
+    return "", offset
 
 
 def extract_html_title(payload: str) -> str:

@@ -336,6 +336,46 @@ $items | ConvertTo-Json -Depth 4
     reverse_dns_enabled: bool = True
     ping_name_resolution_enabled: bool = True
     ping_name_command_template: tuple[str, ...] = ("ping", "-a", "-n", "1", "-w", "{timeout_ms}", "{ip}")
+    multicast_name_resolution_enabled: bool = True
+    multicast_name_resolution_timeout_seconds: float = 0.8
+    multicast_name_resolution_attempts: int = 1
+    mdns_multicast_address: str = "224.0.0.251"
+    mdns_port: int = 5353
+    llmnr_multicast_address: str = "224.0.0.252"
+    llmnr_port: int = 5355
+    windows_known_device_name_resolution_enabled: bool = True
+    windows_known_device_name_command_timeout_seconds: float = 2.0
+    windows_known_device_name_script: str = """
+param([string]$IpAddress)
+$ErrorActionPreference = 'SilentlyContinue'
+$knownLabels = @(
+    Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\KnownDevices\\*' |
+        Where-Object { $_.Label } |
+        Select-Object -ExpandProperty Label -Unique
+)
+$processes = @(
+    Get-NetTCPConnection -RemoteAddress $IpAddress -State Established |
+        ForEach-Object {
+            $process = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+            if (-not $process) { return }
+            $version = $null
+            if ($process.Path) {
+                $version = (Get-Item $process.Path -ErrorAction SilentlyContinue).VersionInfo
+            }
+            [PSCustomObject]@{
+                ProcessName = $process.ProcessName
+                CompanyName = if ($version) { $version.CompanyName } else { '' }
+                ProductName = if ($version) { $version.ProductName } else { '' }
+                Path = if ($process.Path) { $process.Path } else { '' }
+            }
+        } |
+        Sort-Object ProcessName, CompanyName, ProductName, Path -Unique
+)
+[PSCustomObject]@{
+    KnownDeviceLabels = $knownLabels
+    Processes = $processes
+} | ConvertTo-Json -Depth 4
+""".strip()
     netbios_name_resolution_enabled: bool = True
     netbios_command_template: tuple[str, ...] = ("nbtstat", "-A", "{ip}")
     http_title_probe_enabled: bool = True
