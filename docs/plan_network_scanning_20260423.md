@@ -135,60 +135,71 @@ Chọn kiến trúc desktop theo lớp đơn giản:
 network_scanning_23042026/
 ├─ docs/
 │  └─ plan_network_scanning_20260423.md
-├─ main.py
+├─ release/
+│  └─ network_scanner-win/
+│     └─ network_scanner.exe
 ├─ src/
 │  └─ network_scanner/
-│     ├─ __init__.py
+│     ├─ application/
+│     │  ├─ __init__.py
+│     │  ├─ scan_controller.py
+│     │  └─ services.py
 │     ├─ config/
 │     │  ├─ __init__.py
 │     │  └─ settings.py
 │     ├─ domain/
 │     │  ├─ __init__.py
-│     │  ├─ models.py
-│     │  └─ ip_logic.py
-│     ├─ application/
-│     │  ├─ __init__.py
-│     │  ├─ services.py
-│     │  └─ scan_controller.py
+│     │  ├─ ip_logic.py
+│     │  └─ models.py
 │     ├─ infrastructure/
 │     │  ├─ __init__.py
-│     │  ├─ windows_network.py
-│     │  ├─ public_ip_client.py
-│     │  ├─ ping_runner.py
 │     │  ├─ arp_parser.py
 │     │  ├─ dns_resolver.py
-│     │  └─ logging_utils.py
+│     │  ├─ logging_utils.py
+│     │  ├─ ping_runner.py
+│     │  ├─ public_ip_client.py
+│     │  └─ windows_network.py
+│     ├─ resources/
+│     │  ├─ app_icon.ico
+│     │  └─ app_icon.png
 │     └─ ui/
 │        ├─ __init__.py
 │        ├─ main_window.py
-│        ├─ worker_signals.py
-│        └─ table_models.py
+│        ├─ table_models.py
+│        └─ worker_signals.py
 ├─ tests/
-│  ├─ test_ip_logic.py
+│  ├─ conftest.py
 │  ├─ test_arp_parser.py
+│  ├─ test_ip_logic.py
 │  └─ test_windows_network_parsing.py
+├─ LICENSE
+├─ main.py
+├─ network_scanner.spec
+├─ pytest.ini
+├─ README.md
 ├─ requirements.txt
-└─ pytest.ini
+└─ requirements_build.txt
 ```
 
 ### Trách nhiệm từng module
 
 | Module | Trách nhiệm |
 |--------|-------------|
-| `config/settings.py` | Khai báo toàn bộ hằng số vận hành: endpoint public IP, timeout, concurrency, rule chọn adapter, số lần retry nhẹ, command template |
+| `config/settings.py` | Cung cấp hằng số, text giao diện (UiText), helper lấy resource path (đóng gói PyInstaller) |
 | `domain/models.py` | Dataclass cho `AdapterInfo`, `PublicIpInfo`, `DeviceInfo`, `ScanSummary` |
 | `domain/ip_logic.py` | Tính network/broadcast/usable hosts, exclusion set, free IPs |
 | `infrastructure/windows_network.py` | Gọi PowerShell `Get-NetIPConfiguration`, parse JSON/structured text, map thành `AdapterInfo` |
 | `infrastructure/public_ip_client.py` | Gọi external IP endpoint, parse JSON và normalize lỗi |
-| `infrastructure/ping_runner.py` | Ping sweep song song bằng `subprocess.run()` |
+| `infrastructure/ping_runner.py` | Ping sweep song song bằng `subprocess.run()`, bỏ hiển thị cmd window (CREATE_NO_WINDOW) |
 | `infrastructure/arp_parser.py` | Đọc `arp -a`, parse theo interface/IP-MAC |
 | `infrastructure/dns_resolver.py` | Resolve hostname best-effort |
 | `application/services.py` | Kết nối các dependency hạ tầng với domain logic |
-| `application/scan_controller.py` | Điều phối scan lifecycle, progress, stale job guard |
+| `application/scan_controller.py` | Điều phối scan lifecycle, progress, stale job guard, merge arp với local interface |
 | `main.py` | Entry point ở thư mục gốc, bootstrap QApplication và gọi UI chính |
-| `ui/main_window.py` | Main window, adapter dropdown, info panel, scan button, progress bar, tables |
+| `network_scanner.spec` | Khai báo build PyInstaller, bundle resources/ vào app đóng gói |
+| `ui/main_window.py` | Main window, custom header, adapter dropdown, info panel, progress, tables styling nâng cao |
 | `ui/worker_signals.py` | QObject signals cho worker background |
-| `ui/table_models.py` | Model hiển thị danh sách thiết bị và IP trống |
+| `ui/table_models.py` | Model hiển thị danh sách thiết bị và IP trống (căn giữa toàn khối content) |
 
 ### Lựa chọn kỹ thuật
 
@@ -276,26 +287,24 @@ sequenceDiagram
 #### Bố cục cửa sổ chính
 
 1. Thanh trên cùng
+   - Header title đơn giản (đã loại bỏ text Windows/PyQt5)
    - `ComboBox` chọn adapter
-   - `Refresh adapters`
-   - `Refresh public IP`
-   - `Scan`
+   - Nút Refresh có icon
+   - Nút Scan nổi bật
 2. Thẻ thông tin mạng hiện tại
    - Adapter name
    - IPv4 local
    - Subnet mask
    - CIDR
    - Gateway
-   - Public IP
-   - Public IP status/message
+   - Public IP (với logic async)
 3. Khu vực tiến trình
-   - Progress bar
+   - Progress bar liên tục (marquee) khi chưa biết tổng số, nhảy theo % khi đang ping
    - Trạng thái scan hiện tại
-   - Tổng số host cần quét, số host đã xử lý
 4. Tab kết quả
-   - Tab `Thiết bị phát hiện`: bảng `IP`, `MAC`, `Hostname`, `Nguồn phát hiện`
+   - Tab `Kết quả quét`: bảng `IP`, `MAC`, `Hostname`, `Nguồn phát hiện` (căn chỉnh content giữa các cột dưới dạng khối)
    - Tab `IP còn trống`: bảng `IP`
-   - Tab `Tóm tắt`: tổng host hợp lệ, host phát hiện, host trống, IP bị loại trừ
+   - Tab `Tóm tắt`: tổng host hợp lệ, host phát hiện, host trống, IP bị loại trừ (di chuyển từ header chung xuống đây)
 
 #### Rule trạng thái UI
 
