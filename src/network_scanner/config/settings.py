@@ -34,7 +34,6 @@ class UiText:
     results_panel_title: str = "Kết quả quét"
     results_panel_subtitle: str = "Khu vực ưu tiên để xem thiết bị phát hiện được và các IP còn khả dụng."
     summary_panel_title: str = "Tóm tắt phiên quét"
-    summary_panel_subtitle: str = "Thông tin tổng hợp sau khi quét xong."
     devices_tab_title: str = "Thiết bị phát hiện"
     free_ips_tab_title: str = "IP còn trống"
     summary_tab_title: str = "Tóm tắt"
@@ -102,7 +101,6 @@ class UiTheme:
     control_button_min_width: int = 130
     control_row_height: int = 40
     adapter_combo_minimum_contents_length: int = 18
-    summary_panel_minimum_height: int = 260
     splitter_left_initial: int = 980
     splitter_right_initial: int = 340
     body_font_family: str = "Segoe UI"
@@ -276,6 +274,28 @@ QTextEdit {
     background-color: #fbfdff;
     color: #17324e;
     padding: 8px;
+}
+QScrollArea {
+    background-color: transparent;
+    border: none;
+}
+QScrollArea > QWidget > QWidget {
+    background-color: transparent;
+}
+QScrollBar:vertical {
+    background: transparent;
+    width: 6px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: #ccd8e4;
+    border-radius: 3px;
+    min-height: 24px;
+}
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
 }
 QStatusBar {
     background-color: #ffffff;

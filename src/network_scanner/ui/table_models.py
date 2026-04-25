@@ -45,7 +45,7 @@ class DeviceTableModel(QAbstractTableModel):
         )
         if role == Qt.DisplayRole:
             return values[index.column()]
-        if role == Qt.TextAlignmentRole and index.column() == 3:
+        if role == Qt.TextAlignmentRole:
             return int(Qt.AlignCenter)
         return None
 
@@ -89,9 +89,13 @@ class IpTableModel(QAbstractTableModel):
         return 1
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> str | None:
-        if not index.isValid() or role != Qt.DisplayRole:
+        if not index.isValid():
             return None
-        return self._ips[index.row()]
+        if role == Qt.DisplayRole:
+            return self._ips[index.row()]
+        if role == Qt.TextAlignmentRole:
+            return int(Qt.AlignCenter)
+        return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole) -> str | None:
         if role != Qt.DisplayRole:

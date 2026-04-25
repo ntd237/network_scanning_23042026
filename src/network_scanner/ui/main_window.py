@@ -286,7 +286,6 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(self.settings.ui_theme.section_spacing)
         layout.addWidget(self._build_info_panel())
-        layout.addWidget(self._build_summary_panel())
         return container
 
     def _build_info_panel(self) -> QFrame:
@@ -332,18 +331,6 @@ class MainWindow(QMainWindow):
 
         scroll.setWidget(content)
         body.addWidget(scroll, 1)
-        return card
-
-    def _build_summary_panel(self) -> QFrame:
-        card, body = self._create_panel(self.texts.summary_panel_title, self.texts.summary_panel_subtitle)
-        card.setMinimumWidth(self.settings.ui_theme.info_panel_minimum_width)
-        card.setMinimumHeight(self.settings.ui_theme.summary_panel_minimum_height)
-        card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-
-        self.side_summary = QTextEdit()
-        self.side_summary.setReadOnly(True)
-        self.side_summary.setHtml(self._empty_summary_html())
-        body.addWidget(self.side_summary, 1)
         return card
 
     def _create_panel(self, title_text: str, subtitle_text: str) -> tuple[QFrame, QVBoxLayout]:
@@ -459,9 +446,7 @@ class MainWindow(QMainWindow):
         self._set_scan_controls_enabled(False)
         self.progress_bar.setValue(0)
         self.progress_label.setText(self.texts.scan_starting_status)
-        empty_summary = self._empty_summary_html()
-        self.summary_text.setHtml(empty_summary)
-        self.side_summary.setHtml(empty_summary)
+        self.summary_text.setHtml(self._empty_summary_html())
         self._update_stat("devices", "0", self.texts.scan_starting_status)
         self._update_stat("free_ips", "0", self.texts.card_hint_scan)
 
@@ -496,9 +481,7 @@ class MainWindow(QMainWindow):
         self.free_ip_model.update_data(summary.free_ips)
         self.progress_bar.setValue(100)
         self.progress_label.setText(summary.status_message)
-        summary_html = self._format_summary_html(summary)
-        self.summary_text.setHtml(summary_html)
-        self.side_summary.setHtml(summary_html)
+        self.summary_text.setHtml(self._format_summary_html(summary))
         self.statusBar().showMessage(summary.status_message)
         self._update_stat("devices", str(len(summary.devices)), summary.status_message)
         self._update_stat("free_ips", str(len(summary.free_ips)), summary.warning_message or self.texts.card_hint_scan)
