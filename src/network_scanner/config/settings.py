@@ -18,7 +18,6 @@ def _get_str_env(name: str) -> str:
 @dataclass(frozen=True)
 class UiText:
     window_title: str = "Bảng điều khiển quét mạng"
-    hero_badge: str = "Windows • PyQt5"
     hero_title: str = "Quét mạng LAN"
     hero_subtitle: str = "Theo dõi adapter, public IP và danh sách thiết bị trong giao diện tập trung vào dữ liệu quét."
     control_panel_title: str = "Điều khiển quét"
@@ -120,13 +119,6 @@ QFrame#PanelCard, QFrame#StatCard {
     background-color: #ffffff;
     border: 1px solid #d7e0ea;
     border-radius: 14px;
-}
-QLabel#HeroBadge {
-    color: #1d5b79;
-    background-color: #e7f0f6;
-    border-radius: 10px;
-    padding: 4px 10px;
-    font-weight: 600;
 }
 QLabel#HeroTitle {
     color: #18324e;

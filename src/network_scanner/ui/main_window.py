@@ -119,15 +119,7 @@ class MainWindow(QMainWindow):
         card.setObjectName("HeaderCard")
         layout = QHBoxLayout(card)
         layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(12)
-
-        text_row = QHBoxLayout()
-        text_row.setSpacing(12)
-
-        badge = QLabel(self.texts.hero_badge)
-        badge.setObjectName("HeroBadge")
-        badge.setAlignment(Qt.AlignCenter)
-        badge.setMaximumWidth(140)
+        layout.setSpacing(4)
 
         title = QLabel(self.texts.hero_title)
         title.setObjectName("HeroTitle")
@@ -141,9 +133,7 @@ class MainWindow(QMainWindow):
         title_column.addWidget(title)
         title_column.addWidget(subtitle)
 
-        text_row.addWidget(badge, 0, Qt.AlignTop)
-        text_row.addLayout(title_column, 1)
-        layout.addLayout(text_row, 1)
+        layout.addLayout(title_column, 1)
         return card
 
     def _build_control_panel(self) -> QFrame:
